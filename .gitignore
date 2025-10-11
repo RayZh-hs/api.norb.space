@@ -1,0 +1,9 @@
+.vscode
+.DS_Store
+
+node_modules
+
+*.log
+
+# This file is used to configure the server api behavior and contains tokens
+src/config.json
