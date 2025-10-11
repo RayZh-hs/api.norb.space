@@ -1,6 +1,6 @@
-// Read all POST requests from https://api.norb.space/api
-// https://api.norb.space/api updates the api repo
-// https://api.norb.space/api/[id] updates the api repo with the id, performing lookup in config.json
+// Read all POST requests from https://api.norb.space/update
+// https://api.norb.space/update updates the api repo
+// https://api.norb.space/update/[id] updates the api repo with the id, performing lookup in config.json
 
 const express = require("express");
 const app = express();
@@ -14,8 +14,8 @@ const selfUpdateHandler = createUpdateHandler("@");
 const projectUpdateHandler = createUpdateHandler(); // Will get ID from req.params.id
 
 // - API Routes
-app.post("/api", selfUpdateHandler);
-app.post("/api/:id", projectUpdateHandler);
+app.post("/update", selfUpdateHandler);
+app.post("/update/:id", projectUpdateHandler);
 
 // Health check endpoint
 app.get("/", (req, res) => {

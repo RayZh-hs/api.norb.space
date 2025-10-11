@@ -7,7 +7,7 @@ const REPO_PATH = path.resolve(__dirname, "../../");
 const CONFIG_PATH = path.resolve(REPO_PATH, "config.json");
 
 /**
- * Creates an Express middleware function to handle webhook deployments.
+ * Creates an Express middleware function to handle webhook updates.
  * @param {string} [explicitProjectId] - The project ID to use (e.g., '@' for the self-update route). If not provided, it's read from the URL parameter.
  * @returns {import('express').RequestHandler}
  */
@@ -64,30 +64,30 @@ function createUpdateHandler(explicitProjectId) {
       console.error(
         `Script not found for ${projectId} at resolved path: ${commandPath}`
       );
-      return res.status(500).send("Deployment script not found on server.");
+      return res.status(500).send("Update script not found on server.");
     }
 
     console.log(
-      `Authenticated request for [${projectId}]. Initiating deployment...`
+      `Authenticated request for [${projectId}]. Initiating update...`
     );
 
     execFile(commandPath, (error, stdout, stderr) => {
       if (error) {
         console.error(
-          `[${projectId}] Deployment script error: ${error.message}`
+          `[${projectId}] Update script error: ${error.message}`
         );
         console.error(stderr);
         // The response has already been sent, so we just log the error.
         return;
       }
       if (stderr) {
-        console.warn(`[${projectId}] Deployment script stderr: ${stderr}`);
+        console.warn(`[${projectId}] Update script stderr: ${stderr}`);
       }
-      console.log(`[${projectId}] Deployment script stdout: ${stdout}`);
+      console.log(`[${projectId}] Update script stdout: ${stdout}`);
     });
 
     // 4. Respond immediately to avoid webhook timeouts
-    res.status(202).send(`Deployment for ${projectId} initiated successfully.`);
+    res.status(202).send(`Update for ${projectId} initiated successfully.`);
   };
 }
 
