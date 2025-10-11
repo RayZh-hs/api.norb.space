@@ -3,7 +3,8 @@ const path = require("path");
 const crypto = require("crypto");
 const { execFile } = require("child_process");
 
-const CONFIG_PATH = path.resolve(__dirname, "..", "config.json");
+const REPO_PATH = path.resolve(__dirname, "../../");
+const CONFIG_PATH = path.resolve(REPO_PATH, "config.json");
 
 /**
  * Creates an Express middleware function to handle webhook deployments.
