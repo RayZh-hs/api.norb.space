@@ -1,27 +1,31 @@
-// Read all POST requests from https://api.norb.space/update
-// https://api.norb.space/update updates the api repo
-// https://api.norb.space/update/[id] updates the api repo with the id, performing lookup in config.json
-
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const JSON5 = require("json5");
+const { runAction } = require("./action-runner");
+
 const app = express();
 const port = 25820;
+const CONFIG_PATH = path.resolve(__dirname, "../config.json");
 
-const createUpdateHandler = require("./endpoint/update.js");
 app.use(express.json());
 
-// Create specific handlers from factory function
-const selfUpdateHandler = createUpdateHandler("@");
-const projectUpdateHandler = createUpdateHandler(); // Will get ID from req.params.id
+// Load config
+let config;
+try {
+    config = JSON5.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
+} catch (error) {
+    console.error("Fatal: Could not read or parse config.json.", error);
+    process.exit(1);
+}
 
-// - API Routes
-app.post("/update", selfUpdateHandler);
-app.post("/update/:id", projectUpdateHandler);
-
-// Health check endpoint
-app.get("/", (req, res) => {
-  res.status(200).send("API Hub is running.");
+// Main entry point for all requests
+app.all(/.*/, (req, res) => {
+    console.log(`Received request: ${req.method} ${req.path}`);
+    const activeDomain = req.path.startsWith("/") ? req.path.substring(1) : req.path;    
+    runAction(config, req, res, activeDomain);
 });
 
 app.listen(port, () => {
-  console.log(`API Hub server is running on http://localhost:${port}`);
+  console.info(`API Hub server is running on http://localhost:${port}`);
 });
