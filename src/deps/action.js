@@ -1,70 +1,5 @@
 const { execFile } = require("child_process");
-const path = require("path");
-const crypto = require("crypto");
-const http = require("http");
-const https = require("https");
-const { URL } = require("url");
-
-const REPO_PATH = path.resolve(__dirname, "../");
-
-function resolveCommand(command) {
-    if (command.startsWith("$self/")) {
-        return path.resolve(REPO_PATH, command.substring(6));
-    }
-    return command;
-}
-
-function validateToken(req, token) {
-    if (!token) return true;
-    const authHeader = req.get("Authorization");
-    const providedToken = authHeader?.startsWith("Bearer ")
-        ? authHeader.substring(7)
-        : null;
-
-    if (!providedToken) return false;
-
-    try {
-        return crypto.timingSafeEqual(
-            Buffer.from(providedToken),
-            Buffer.from(token)
-        );
-    } catch (e) {
-        return false;
-    }
-}
-
-function proxyRequest(req, res, target, preservePath, activeDomain) {
-    let targetUrl = target;
-    if (preservePath && activeDomain) {
-        if (!targetUrl.endsWith("/")) targetUrl += "/";
-        targetUrl += activeDomain;
-    }
-
-    const parsedUrl = new URL(targetUrl);
-    const options = {
-        hostname: parsedUrl.hostname,
-        port: parsedUrl.port,
-        path: parsedUrl.pathname + parsedUrl.search,
-        method: req.method,
-        headers: { ...req.headers, host: parsedUrl.host },
-    };
-
-    const requestModule = parsedUrl.protocol === "https:" ? https : http;
-
-    const proxyReq = requestModule.request(options, (proxyRes) => {
-        res.writeHead(proxyRes.statusCode, proxyRes.headers);
-        proxyRes.pipe(res);
-    });
-
-    proxyReq.on("error", (e) => {
-        console.error(`Proxy error: ${e.message}`);
-        if (!res.headersSent) {
-            res.status(502).send("Bad Gateway");
-        }
-    });
-
-    req.pipe(proxyReq);
-}
+const { resolveCommand, validateToken, proxyRequest } = require("./utility");
 
 class Action {
     constructor(config) {
@@ -82,6 +17,9 @@ class RouteAction extends Action {
         this.useRegex = config.use_regex || false;
         this.routes = [];
         
+        // Lazy load to avoid circular dependency issues
+        const { buildActionTree } = require("./runner");
+
         if (config.routes) {
             for (const [key, childConfig] of Object.entries(config.routes)) {
                 let regex = null;
@@ -181,23 +119,10 @@ class RespondAction extends Action {
     }
 }
 
-function buildActionTree(config) {
-    if (!config || !config.action) {
-        throw new Error("Invalid configuration: missing action type");
-    }
-
-    switch (config.action) {
-        case "route":
-            return new RouteAction(config);
-        case "run":
-            return new RunAction(config);
-        case "delegate":
-            return new DelegateAction(config);
-        case "respond":
-            return new RespondAction(config);
-        default:
-            throw new Error(`Unknown action type: ${config.action}`);
-    }
-}
-
-module.exports = { buildActionTree };
+module.exports = {
+    Action,
+    RouteAction,
+    RunAction,
+    DelegateAction,
+    RespondAction
+};

@@ -2,7 +2,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const JSON5 = require("json5");
-const { buildActionTree } = require("./action-runner");
+const { buildActionTree } = require("./deps/runner");
 
 const app = express();
 const port = 25820;
