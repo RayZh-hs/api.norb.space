@@ -54,7 +54,10 @@ class RouteAction extends Action {
         });
 
         if (matchedRoute) {
-            const nextActiveDomain = parts.slice(1).join("/");
+            const nextActiveDomain =
+                !this.useRegex && matchedRoute.key === "*"
+                    ? domainToMatch
+                    : parts.slice(1).join("/");
             return matchedRoute.action.run(req, res, nextActiveDomain);
         } else {
             return res.status(404).send("No matching route found.");

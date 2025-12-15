@@ -43,7 +43,12 @@ try {
 app.all(/.*/, (req, res) => {
     console.log(`Received request: ${req.method} ${req.path}`);
     const activeDomain = req.path.startsWith("/") ? req.path.substring(1) : req.path;    
-    rootAction.run(req, res, activeDomain);
+    Promise.resolve(rootAction.run(req, res, activeDomain)).catch((error) => {
+        console.error("Unhandled action error:", error);
+        if (!res.headersSent) {
+            res.status(500).send("Internal Server Error");
+        }
+    });
 });
 
 app.listen(port, () => {

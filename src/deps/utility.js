@@ -33,36 +33,60 @@ function validateToken(req, token) {
 }
 
 function proxyRequest(req, res, target, preservePath, activeDomain) {
-    let targetUrl = target;
-    if (preservePath && activeDomain) {
-        if (!targetUrl.endsWith("/")) targetUrl += "/";
-        targetUrl += activeDomain;
-    }
+    try {
+        const normalizedTarget =
+            typeof target === "string" && target.includes("://")
+                ? target
+                : `http://${target}`;
 
-    const parsedUrl = new URL(targetUrl);
-    const options = {
-        hostname: parsedUrl.hostname,
-        port: parsedUrl.port,
-        path: parsedUrl.pathname + parsedUrl.search,
-        method: req.method,
-        headers: { ...req.headers, host: parsedUrl.host },
-    };
+        const parsedUrl = new URL(normalizedTarget);
 
-    const requestModule = parsedUrl.protocol === "https:" ? https : http;
+        if (preservePath && activeDomain) {
+            const activePath = String(activeDomain).replace(/^\/+/, "");
+            if (activePath) {
+                const basePath = parsedUrl.pathname || "/";
+                parsedUrl.pathname = basePath.endsWith("/")
+                    ? `${basePath}${activePath}`
+                    : `${basePath}/${activePath}`;
+            }
+        }
 
-    const proxyReq = requestModule.request(options, (proxyRes) => {
-        res.writeHead(proxyRes.statusCode, proxyRes.headers);
-        proxyRes.pipe(res);
-    });
+        const incomingSearch = req.url.includes("?")
+            ? req.url.substring(req.url.indexOf("?"))
+            : "";
+        if (!parsedUrl.search && incomingSearch) {
+            parsedUrl.search = incomingSearch;
+        }
 
-    proxyReq.on("error", (e) => {
-        console.error(`Proxy error: ${e.message}`);
+        const options = {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port,
+            path: parsedUrl.pathname + parsedUrl.search,
+            method: req.method,
+            headers: { ...req.headers, host: parsedUrl.host },
+        };
+
+        const requestModule = parsedUrl.protocol === "https:" ? https : http;
+
+        const proxyReq = requestModule.request(options, (proxyRes) => {
+            res.writeHead(proxyRes.statusCode, proxyRes.headers);
+            proxyRes.pipe(res);
+        });
+
+        proxyReq.on("error", (e) => {
+            console.error(`Proxy error: ${e.message}`);
+            if (!res.headersSent) {
+                res.status(502).send("Bad Gateway");
+            }
+        });
+
+        req.pipe(proxyReq);
+    } catch (e) {
+        console.error(`Proxy setup error: ${e.message}`);
         if (!res.headersSent) {
             res.status(502).send("Bad Gateway");
         }
-    });
-
-    req.pipe(proxyReq);
+    }
 }
 
 module.exports = {

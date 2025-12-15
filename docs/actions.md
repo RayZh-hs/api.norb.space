@@ -9,8 +9,12 @@ Here is a list of all available actions in the config.json file.
 - `route`: Matches the active domain against multiple prefix strings, and routes to the first matching sub-action. Parameters:
     - `routes` (object): A mapping of prefix strings to sub-actions.
     - `use_regex`: (boolean, optional): If true, the object keys are treated as regular expressions instead of prefixes. Defaults to false.
+    - Special route keys:
+        - `@`: Matches an empty active domain (i.e. `/somePrefix` exactly).
+        - `*`: Catch-all; matches any active domain and passes it through unchanged.
 - `delegate`: Delegates the request to a web service. Parameters:
     - `target` (string): The URL of the web service to delegate to, for instance:
+        - `localhost:8080/` (defaults to `http://`)
         - `http://localhost:8080/`
         - `https://api.example.com/endpoint`
     - `preserve_path` (boolean, optional): If true, appends the active domain to the target URL. Defaults to true.
