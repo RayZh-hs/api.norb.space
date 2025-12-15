@@ -4,6 +4,7 @@ const path = require("path");
 const JSON5 = require("json5");
 const { parseArgs } = require("util");
 const { buildActionTree } = require("./deps/runner");
+const requestLogger = require("./deps/logger");
 
 const app = express();
 
@@ -26,6 +27,7 @@ const port = parseInt(values.port, 10);
 const configPath = path.resolve(values.config);
 
 app.use(express.json());
+app.use(requestLogger);
 
 // Load config
 let rootAction;
